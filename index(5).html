@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>روبوت آلي</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#172437;--muted:#6e7b8c;--blue:#1769e0;--green:#15935c;--red:#d84250;--dark:#101d2d;--line:#dce4ec}
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select{font:inherit}button{cursor:pointer}
+header{background:var(--dark);color:#fff;padding:18px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:26px}header p{margin:5px 0 0;color:#bdc8d4;font-size:13px}
+.wrap{width:min(1050px,calc(100% - 18px));margin:18px auto 34px}
+.card,.axis{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(20,40,70,.07)}
+.card{padding:17px;margin-bottom:14px}
+.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:bold}.blue{background:var(--blue);color:#fff}.green{background:var(--green);color:#fff}.red{background:var(--red);color:#fff}.dark{background:#2b3a4d;color:#fff}.light{background:#eef2f6;color:#27384b}.btn:disabled{opacity:.45}
+.status{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.09);padding:9px 12px;border-radius:999px;font-size:13px}
+.status i{width:9px;height:9px;border-radius:50%;background:#7e8a99}.status.on i{background:#2fd386}
+.connect{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.settings{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end}
+.field{display:grid;gap:7px}.field label{display:flex;justify-content:space-between;font-weight:bold;font-size:14px}.field input{width:100%;accent-color:var(--blue)}
+.field select{height:42px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff}
+.note{margin-top:13px;background:#edf8f2;color:#176a43;padding:11px 13px;border-radius:11px;font-size:13px;line-height:1.7}
+.axes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.axis{padding:15px}.axis-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.axis h2{margin:0;font-size:17px}.axis p{margin:4px 0 0;color:var(--muted);font-size:12px}.tag{background:#eef2f6;color:#5a6878;padding:6px 9px;border-radius:9px;font-size:11px;font-weight:bold}
+.move-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.move{min-height:80px;border:1px solid #ccd6e0;background:#f9fbfc;border-radius:13px;font-weight:bold;font-size:18px;touch-action:none;user-select:none}.move span{display:block;color:var(--blue);font-size:26px;margin-bottom:4px}.move.pressed{background:var(--blue);color:white;border-color:var(--blue)}.move.pressed span{color:white}.move:disabled{opacity:.45}
+.axis-foot{border-top:1px solid var(--line);margin-top:12px;padding-top:11px;display:flex;justify-content:space-between;gap:10px;align-items:center}.hold{display:flex;gap:7px;align-items:center;font-size:13px}.hold input{accent-color:var(--green)}
+.small{font-size:12px;color:var(--muted);line-height:1.7}
+.record-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.record-head h2{margin:0;font-size:19px}.record-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.rec-info{background:#eef2f6;color:#596879;border-radius:999px;padding:7px 10px;font-size:12px}.rec-info.live{background:#fff0f1;color:#b22f3b}
+.rec-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:13px}.rec-buttons .btn{min-height:46px}
+.zero{width:100%;margin-top:14px;min-height:48px}
+@media(max-width:760px){.settings,.axes{grid-template-columns:1fr}.rec-buttons{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>روبوت آلي</h1><p>تحكم Bluetooth Low Energy</p></div>
+  <div class="connect">
+    <span id="status" class="status"><i></i><span id="statusText">غير متصل</span></span>
+    <button id="connectBtn" class="btn blue">اتصال</button>
+    <button id="disconnectBtn" class="btn dark" disabled>فصل</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <div class="settings">
+      <div class="field">
+        <label><span>السرعة المشتركة</span><span id="speedOut">50%</span></label>
+        <input id="speed" type="range" min="1" max="100" value="50">
+      </div>
+      <div class="field">
+        <label>درجة الحركة المشتركة</label>
+        <select id="step"><option value="1">1°</option><option value="2" selected>2°</option><option value="5">5°</option><option value="10">10°</option></select>
+      </div>
+      <button id="releaseBtn" class="btn red" disabled>تحرير الكل</button>
+    </div>
+    <div class="note">لا يتحرك أي سيرفو عند تشغيل ESP32 أو عند الاتصال. الحركة تبدأ فقط عند ضغط زر اتجاه. إذا انقطع الاتصال أثناء التحكم اليدوي يتوقف السيرفو تلقائيًا.</div>
+  </section>
+
+  <section id="axes" class="axes"></section>
+
+  <section class="card" style="margin-top:14px">
+    <div class="record-head">
+      <div><h2>تسجيل الحركات</h2><p>سجّل الحركة مرة ثم شغّلها أو كررها تلقائيًا.</p></div>
+      <span id="recInfo" class="rec-info">لا يوجد تسجيل</span>
+    </div>
+    <div class="rec-buttons">
+      <button id="recBtn" class="btn red" disabled>● بدء التسجيل</button>
+      <button id="stopRecBtn" class="btn dark" disabled>إيقاف التسجيل</button>
+      <button id="playBtn" class="btn blue" disabled>تشغيل مرة</button>
+      <button id="repeatBtn" class="btn green" disabled>تكرار مستمر</button>
+      <button id="stopShowBtn" class="btn red" disabled>إيقاف العرض</button>
+      <button id="clearBtn" class="btn light">مسح التسجيل</button>
+    </div>
+    <p class="small">التسجيل محفوظ في المتصفح. عند التشغيل يُرفع إلى ESP32 ويُنفذ داخله؛ لذلك التكرار يستمر حتى لو انفصل الجوال بعد بدء العرض. للتكرار المستمر بدون انجراف، الأفضل أن تنهي الروتين قريبًا من وضع البداية.</p>
+    <button id="zero0Btn" class="btn green zero" disabled>تصفير Channel 0 فقط</button>
+  </section>
+</main>
+
+<script>
+const SERVICE='12345678-1234-1234-1234-1234567890ab';
+const CHAR='12345678-1234-1234-1234-1234567890ac';
+
+const AXES=[
+ {a:0,n:'دوران القاعدة',s:'CH0 — Base',t:'MG996R',h:false},
+ {a:1,n:'الكتف',s:'CH1 — Shoulder',t:'MG996R',h:true},
+ {a:2,n:'الكوع',s:'CH2 — Elbow',t:'MG996R',h:true},
+ {a:3,n:'ميل المعصم',s:'CH3 — Wrist Pitch',t:'MG90S',h:false},
+ {a:4,n:'دوران المعصم',s:'CH4 — Wrist Rotate',t:'MG90S',h:false},
+ {a:5,n:'الملقط',s:'CH5 — Gripper',t:'MG90S',h:false}
+];
+
+const C={START:1,KEEP:2,STOP:3,HOLD:4,ZERO0:5,OFF:6,REC_BEGIN:32,REC_EVENT:33,REC_END:34,PLAY:35,STOP_PLAY:36};
+const E={START:1,STOP:2,HOLD:3,ZERO0:4,OFF:5};
+
+let device=null,ch=null,connected=false,active=null,keepTimer=null,queue=Promise.resolve();
+let recording=false,recStart=0,events=[];
+
+const $=id=>document.getElementById(id);
+
+function render(){
+  const host=$('axes');
+  AXES.forEach(x=>{
+    const el=document.createElement('article'); el.className='axis';
+    el.innerHTML=`
+      <div class="axis-head"><div><h2>${x.n}</h2><p>${x.s}</p></div><span class="tag">${x.t}</span></div>
+      <div class="move-row">
+        <button class="move" data-a="${x.a}" data-d="-1" disabled><span>◀</span>يسار</button>
+        <button class="move" data-a="${x.a}" data-d="1" disabled><span>▶</span>يمين</button>
+      </div>
+      <div class="axis-foot">
+        <label class="hold"><input id="h${x.a}" type="checkbox" ${x.h?'checked':''} disabled> تثبيت بعد ترك الزر</label>
+        <span id="st${x.a}" class="small">${x.h?'ممسوك افتراضيًا':'محرر'}</span>
+      </div>`;
+    host.appendChild(el);
+  });
+
+  document.querySelectorAll('.move').forEach(b=>{
+    b.onpointerdown=e=>{e.preventDefault();startMove(+b.dataset.a,+b.dataset.d,b)};
+    b.onpointerup=stopMove; b.onpointercancel=stopMove; b.oncontextmenu=e=>e.preventDefault();
+  });
+
+  AXES.forEach(x=>{
+    $('h'+x.a).onchange=async()=>{
+      const h=$('h'+x.a).checked?1:0;
+      await send(new Uint8Array([C.HOLD,x.a,h]));
+      rec(E.HOLD,x.a,0,0,0,h);
+    };
+  });
+}
+
+function setConn(v){
+  connected=v;
+  $('status').classList.toggle('on',v); $('statusText').textContent=v?'متصل':'غير متصل';
+  $('connectBtn').disabled=v; $('disconnectBtn').disabled=!v; $('releaseBtn').disabled=!v; $('zero0Btn').disabled=!v; $('stopShowBtn').disabled=!v;
+  document.querySelectorAll('.move').forEach(b=>b.disabled=!v); AXES.forEach(x=>$('h'+x.a).disabled=!v);
+  refreshButtons();
+}
+
+async function connect(){
+  if(!navigator.bluetooth){alert('استخدم Chrome على Android أو Chrome/Edge على الكمبيوتر.');return}
+  try{
+    device=await navigator.bluetooth.requestDevice({filters:[{name:'Robot-Ali-BLE'}],optionalServices:[SERVICE]});
+    device.addEventListener('gattserverdisconnected',()=>{ch=null;stopLocal();setConn(false)});
+    const g=await device.gatt.connect(), s=await g.getPrimaryService(SERVICE); ch=await s.getCharacteristic(CHAR);
+    setConn(true);
+    for(const x of AXES) await send(new Uint8Array([C.HOLD,x.a,$('h'+x.a).checked?1:0]));
+  }catch(e){console.error(e);alert('تعذر الاتصال: '+e.message);setConn(false)}
+}
+
+async function disconnect(){
+  try{if(ch)await send(new Uint8Array([C.OFF]))}catch(e){}
+  if(device?.gatt?.connected)device.gatt.disconnect();
+  ch=null;stopLocal();setConn(false);
+}
+
+function send(data){
+  if(!connected||!ch)return Promise.reject(new Error('BLE disconnected'));
+  queue=queue.then(async()=>{
+    if(ch.writeValueWithoutResponse)await ch.writeValueWithoutResponse(data);
+    else await ch.writeValue(data);
+  });
+  return queue;
+}
+
+const speed=()=>+$('speed').value, step=()=>+$('step').value, hold=a=>$('h'+a).checked?1:0;
+
+async function startMove(a,d,b){
+  if(!connected||active)return;
+  active={a,d,b}; b.classList.add('pressed');
+  await send(new Uint8Array([C.START,a,d>0?1:0,speed(),step(),hold(a)]));
+  rec(E.START,a,d,speed(),step(),hold(a));
+  keepTimer=setInterval(()=>{if(active&&connected)send(new Uint8Array([C.KEEP,active.a])).catch(()=>{})},150);
+}
+
+async function stopMove(e){
+  if(e)e.preventDefault(); if(!active)return;
+  const a=active.a,h=hold(a);
+  try{await send(new Uint8Array([C.STOP,a,h]))}catch(e){}
+  rec(E.STOP,a,0,0,0,h); stopLocal();
+}
+
+function stopLocal(){if(keepTimer)clearInterval(keepTimer);keepTimer=null;if(active?.b)active.b.classList.remove('pressed');active=null}
+
+async function releaseAll(){stopLocal();await send(new Uint8Array([C.OFF]));rec(E.OFF,255,0,0,0,0)}
+async function zero0(){await send(new Uint8Array([C.ZERO0,hold(0)]));rec(E.ZERO0,0,0,0,0,hold(0))}
+
+function rec(type,a,d,sp,st,h){
+  if(!recording)return;
+  events.push({t:Math.round(performance.now()-recStart),type,a,d,sp,st,h});refreshInfo();
+}
+
+async function startRec(){if(active)await stopMove();events=[];recording=true;recStart=performance.now();$('recInfo').classList.add('live');refreshButtons();refreshInfo()}
+async function stopRec(){if(active)await stopMove();recording=false;$('recInfo').classList.remove('live');localStorage.setItem('robotAliRec',JSON.stringify(events));refreshButtons();refreshInfo()}
+function clearRec(){events=[];localStorage.removeItem('robotAliRec');refreshButtons();refreshInfo()}
+function loadRec(){try{const x=JSON.parse(localStorage.getItem('robotAliRec')||'[]');if(Array.isArray(x))events=x}catch(e){}refreshInfo()}
+
+function refreshInfo(){
+  if(recording){const d=events.length?events.at(-1).t:0;$('recInfo').textContent=`يسجل • ${events.length} حدث • ${(d/1000).toFixed(1)}ث`;return}
+  if(!events.length){$('recInfo').textContent='لا يوجد تسجيل';return}
+  $('recInfo').textContent=`${events.length} حدث • ${(events.at(-1).t/1000).toFixed(1)} ثانية`;
+}
+function refreshButtons(){const ok=events.length>0;$('recBtn').disabled=!connected||recording;$('stopRecBtn').disabled=!connected||!recording;$('playBtn').disabled=!connected||recording||!ok;$('repeatBtn').disabled=!connected||recording||!ok}
+
+function pack(ev){
+  const b=new ArrayBuffer(11),v=new DataView(b);v.setUint8(0,C.REC_EVENT);v.setUint32(1,ev.t>>>0,true);v.setUint8(5,ev.type);v.setUint8(6,ev.a);v.setInt8(7,ev.d||0);v.setUint8(8,ev.sp||0);v.setUint8(9,ev.st||0);v.setUint8(10,ev.h||0);return new Uint8Array(b)
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function upload(){
+  const n=events.length;await send(new Uint8Array([C.REC_BEGIN,n&255,(n>>8)&255]));
+  for(const ev of events){await send(pack(ev));await sleep(8)}
+  await send(new Uint8Array([C.REC_END]));
+}
+async function play(loop){try{if(active)await stopMove();await upload();await send(new Uint8Array([C.PLAY,loop?1:0]))}catch(e){alert('تعذر التشغيل: '+e.message)}}
+async function stopShow(){if(connected)await send(new Uint8Array([C.STOP_PLAY]))}
+
+$('connectBtn').onclick=connect;$('disconnectBtn').onclick=disconnect;$('releaseBtn').onclick=releaseAll;$('zero0Btn').onclick=zero0;
+$('speed').oninput=()=>$('speedOut').textContent=$('speed').value+'%';
+$('recBtn').onclick=startRec;$('stopRecBtn').onclick=stopRec;$('playBtn').onclick=()=>play(false);$('repeatBtn').onclick=()=>play(true);$('stopShowBtn').onclick=stopShow;$('clearBtn').onclick=clearRec;
+window.addEventListener('pointerup',stopMove);window.addEventListener('blur',()=>{if(active)stopMove()});
+render();loadRec();setConn(false);
+</script>
+</body>
+</html>
